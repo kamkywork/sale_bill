@@ -378,7 +378,7 @@
         // -------------------------------------------------------------
         // ⚙️ CONFIG & API SETUP
         // -------------------------------------------------------------
-        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbw8dBnzsUiQFNLzd6uhVV-HXMQcrPeeHVows4gx8rwj3YpP0_GSGrB0qe7vKSFP0yWK/exec"; 
+        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbwl1UxchsMzHSX1Sxav-3AmDOB-5GZcada-ml-UmqrDzje5--5vfocl4yrRND4cIuQKeA/exec"; 
         const SLIP_API_KEY = "cc337cb2-f35b-40b1-a92d-0ed556755722";
 
         var isEditMode = false; 
@@ -492,51 +492,45 @@
         }
 
         function importFromContract() {
-    if(isEditMode) { if(!confirm("คุณกำลังอยู่ในโหมดแก้ไข การดึงสัญญาใหม่จะทับข้อมูลปัจจุบัน?")) return; }
-    const cNo = document.getElementById('import-contract-no').value;
-    if(!cNo) return alert("กรุณากรอกเลขสัญญา");
-    const btn = document.querySelector('.btn-import'); const old = btn.innerText; btn.innerText="⏳.."; btn.disabled=true;
+            if(isEditMode) { if(!confirm("คุณกำลังอยู่ในโหมดแก้ไข การดึงสัญญาใหม่จะทับข้อมูลปัจจุบัน?")) return; }
+            const cNo = document.getElementById('import-contract-no').value;
+            if(!cNo) return alert("กรุณากรอกเลขสัญญา");
+            const btn = document.querySelector('.btn-import'); const old = btn.innerText; btn.innerText="⏳.."; btn.disabled=true;
+            fetch(`${googleScriptUrl}?action=getContractData&c_no=${encodeURIComponent(cNo)}`, {
+    method: 'GET',
+    redirect: 'follow' // ✅ เพิ่มเพื่อให้ตาม Redirect ของ Google
+}).then(r=>r.json()).then(d=>{
+                if(d.status==='success') {
+                    document.getElementById('in-contract-no').value = d.c_no;
+					if (d.c_no) {
+    // แยกตัวอักษรหน้าขีด (เช่น "K-66/001" จะได้ "K")
+    let prefix = d.c_no.split('-')[0].trim().toUpperCase();
+    let saleSelect = document.getElementById('in-sale-code');
     
-    fetch(`${googleScriptUrl}?action=getContractData&c_no=${encodeURIComponent(cNo)}`, {
-        method: 'GET',
-        redirect: 'follow'
-    }).then(r=>r.json()).then(d=>{
-        if(d.status==='success') {
-            document.getElementById('in-contract-no').value = d.c_no;
-            
-            if (d.c_no) {
-                // 🔴🔴🔴 [ส่วนที่แก้ไข] ใช้ Regex จับ Prefix แทนการ Split 🔴🔴🔴
-                let match = d.c_no.match(/^([A-Z]+)/i);
-                let prefix = match ? match[1].toUpperCase() : "";
-
-                let saleSelect = document.getElementById('in-sale-code');
-                
-                // ถ้าตัวอักษรตรงกับที่มีในตัวเลือก ให้เปลี่ยนค่าทันที
-                if (prefix === 'T' || prefix === 'K' || prefix === 'N') {
-                    saleSelect.value = prefix;
-                    // โหลดเลขที่ใบเสร็จล่าสุดของทีมนั้นใหม่ด้วย
-                    fetchNextBillNo(); 
-                }
-                // 🔴🔴🔴 [จบส่วนที่แก้ไข] 🔴🔴🔴
-            }
-            
-            document.getElementById('in-customer').value = d.b_name; 
-            document.getElementById('in-product-name').value = d.p_name;
-            document.getElementById('in-rem-amount').value = d.amount;
-            document.getElementById('in-amount').value = d.amount;
-            if(d.due_day) document.getElementById('in-due-date').value = d.due_day;
-            if(d.first_date) document.getElementById('in-start-date').value = d.first_date;
-            document.getElementById('in-type').value = 'installment';
-            document.getElementById('in-period').value = d.next_period;
-            document.getElementById('in-total-period').value = d.total_period;
-            sync('contract-no'); sync('customer'); sync('product-name'); sync('due-date'); sync('period');
-            formatMoney(document.getElementById('in-rem-amount')); formatMoney(document.getElementById('in-amount'));
-            formatStartDate(document.getElementById('in-start-date').value); toggleType(); calculateRemaining(); 
-            if(!isEditMode) fetchNextBillNo();
-            alert(`✅ ดึงข้อมูลสำเร็จ!`);
-        } else { alert("❌ ไม่พบเลขที่สัญญานี้"); }
-    }).catch(e=>alert("Error: "+e)).finally(()=>{ btn.innerText=old; btn.disabled=false; });
+    // ถ้าตัวอักษรตรงกับที่มีในตัวเลือก ให้เปลี่ยนค่าทันที
+    if (prefix === 'T' || prefix === 'K' || prefix === 'N') {
+        saleSelect.value = prefix;
+        // โหลดเลขที่ใบเสร็จล่าสุดของทีมนั้นใหม่ด้วย
+        fetchNextBillNo(); 
+    }
 }
+                    document.getElementById('in-customer').value = d.b_name; 
+                    document.getElementById('in-product-name').value = d.p_name;
+                    document.getElementById('in-rem-amount').value = d.amount;
+                    document.getElementById('in-amount').value = d.amount;
+                    if(d.due_day) document.getElementById('in-due-date').value = d.due_day;
+                    if(d.first_date) document.getElementById('in-start-date').value = d.first_date;
+                    document.getElementById('in-type').value = 'installment';
+                    document.getElementById('in-period').value = d.next_period;
+                    document.getElementById('in-total-period').value = d.total_period;
+                    sync('contract-no'); sync('customer'); sync('product-name'); sync('due-date'); sync('period');
+                    formatMoney(document.getElementById('in-rem-amount')); formatMoney(document.getElementById('in-amount'));
+                    formatStartDate(document.getElementById('in-start-date').value); toggleType(); calculateRemaining(); 
+                    if(!isEditMode) fetchNextBillNo();
+                    alert(`✅ ดึงข้อมูลสำเร็จ!`);
+                } else { alert("❌ ไม่พบเลขที่สัญญานี้"); }
+            }).catch(e=>alert("Error: "+e)).finally(()=>{ btn.innerText=old; btn.disabled=false; });
+        }
 
         function calculateRemaining() {
             const cur = parseInt(document.getElementById('in-period').value)||0;
