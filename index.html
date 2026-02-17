@@ -559,7 +559,7 @@
     });
 }
         
-        // 🟢 ฟังก์ชันบันทึกและอัปเดต (แก้ไข: บังคับสัดส่วนคอมพิวเตอร์ 100%)
+        // 🟢 ฟังก์ชันบันทึกและอัปเดต (แก้ไข: ลบ windowHeight เพื่อแก้ภาพยาวเกิน)
 function submitToDatabase() {
     if(!googleScriptUrl) return alert("URL Error");
 
@@ -572,57 +572,48 @@ function submitToDatabase() {
     const slipContainer = document.getElementById('slip-container-paper');
     const hasSlips = document.getElementById('slip-gallery').children.length > 0;
     
-    // เก็บสถานะการแสดงผลเดิมไว้ เพื่อคืนค่าตอนจบ
+    // เก็บสถานะการแสดงผลเดิมไว้
     const originalSlipDisplay = slipContainer.style.display;
     const originalClass = paper.className;
 
-    // ⚙️ ตั้งค่า Config เพื่อบังคับให้รูปออกมาเป็นสัดส่วนคอมพิวเตอร์ (Desktop)
-    // ✅ แก้ไข: เพิ่ม windowHeight/Width และปรับ onclone เพื่อรองรับ Safari/iOS
+    // ในไฟล์ bill.html
     const desktopConfig = {
-        scale: 2,           // ความละเอียด 2 เท่า
-        useCORS: true,      // อนุญาตโหลดรูปข้ามโดเมน
-        
-        // ⚙️ ค่าหลอก Browser (Virtual Viewport)
-        windowWidth: 1280,  // กว้างเท่าคอม
-        windowHeight: 2500, // ยาวพอที่จะเก็บ A4 เต็มใบ
-        
-        // ⚙️ ล็อคพิกัด (สำคัญมากสำหรับ iOS)
-        x: 0,
-        y: 0,
-        scrollY: 0,         // บังคับจับจากบนสุด ไม่สนว่า User เลื่อนจอไปไหน
+        scale: 2,           
+        useCORS: true,      
+        windowWidth: 1280,  
+        x: 0, y: 0, scrollY: 0,
 
         onclone: (clonedDoc) => {
-            // 1. บังคับ Body ของร่างจำลอง
-            clonedDoc.body.style.width = '1280px';
-            clonedDoc.body.style.minHeight = '2500px';
-            clonedDoc.body.style.margin = '0';
-            clonedDoc.body.style.padding = '0';
-            clonedDoc.body.style.overflow = 'visible';
+            const clonedHtml = clonedDoc.documentElement;
+            const clonedBody = clonedDoc.body;
 
-            // 2. บังคับกระดาษ (Paper) ให้กางเต็ม A4 ไม่ถูกบีบ
+            // ✅ บังคับให้ Container ยืดหดตามเนื้อหา
+            clonedHtml.style.height = 'auto';
+            clonedBody.style.height = 'auto';
+            
+            clonedBody.style.width = '1280px';
+            clonedBody.style.minHeight = 'auto';
+            clonedBody.style.margin = '0';
+            clonedBody.style.padding = '0';
+            clonedBody.style.overflow = 'visible';
+
             const clonedPaper = clonedDoc.getElementById('bill-paper');
             if (clonedPaper) {
-                clonedPaper.style.width = '210mm';      // ความกว้าง A4 มาตรฐาน
-                clonedPaper.style.minHeight = '297mm';  // ความสูง A4 มาตรฐาน
+                clonedPaper.style.width = '210mm';      
                 
-                // ✅ คืนค่า CSS สำหรับ Desktop (ล้างค่า Mobile)
-                clonedPaper.style.maxWidth = 'none';    
-                clonedPaper.style.margin = '0 auto';    
-                clonedPaper.style.transform = 'none';   // ⛔ สำคัญ: ยกเลิกการย่อ (Scale) ของหน้าจอมือถือ
-                clonedPaper.style.boxShadow = 'none';   
-                clonedPaper.style.position = 'static';
+                // 🔴 จุดที่แก้ไข: เปลี่ยนจาก 297mm เป็น auto
+                clonedPaper.style.minHeight = 'auto';  
                 
-                // จัดการ Layout ภายในไม่ให้ซ้อนกัน
-                const rows = clonedPaper.querySelectorAll('.row');
-                rows.forEach(r => r.style.flexWrap = 'nowrap'); // ห้ามบีบแถวให้ตกบรรทัด
+                clonedPaper.style.height = 'max-content'; // ให้สูงเท่าเนื้อหาจริง
+                clonedPaper.style.boxShadow = 'none';     // ลบเงากระดาษออก
+                clonedPaper.style.margin = '0 auto';
             }
         }
     };
 
     // ---------------------------------------------------------
-    // 📸 STEP 1: จับภาพแบบ "ย่อ" (Clean Bill - สำหรับส่งลูกค้า)
+    // 📸 STEP 1: จับภาพแบบ "ย่อ" (Clean Bill)
     // ---------------------------------------------------------
-    // ปรับหน้าจอจริงชั่วคราว
     slipContainer.style.display = 'none';
     paper.classList.add('compact-mode');
 
@@ -630,33 +621,28 @@ function submitToDatabase() {
         const cleanBase64 = cleanCanvas.toDataURL("image/jpeg", 0.8).split(',')[1];
 
         // ---------------------------------------------------------
-        // 📸 STEP 2: จับภาพแบบ "เต็ม" (Full Bill - เก็บเป็นหลักฐาน)
+        // 📸 STEP 2: จับภาพแบบ "เต็ม" (Full Bill)
         // ---------------------------------------------------------
-        // ปรับหน้าจอจริงชั่วคราว (คืนค่า Compact Mode และโชว์สลิปถ้ามี)
         paper.classList.remove('compact-mode');
         if(hasSlips) { slipContainer.style.display = 'flex'; }
 
         html2canvas(paper, desktopConfig).then(async fullCanvas => {
             const fullBase64 = fullCanvas.toDataURL("image/jpeg", 0.8).split(',')[1];
 
-            // ✅ คืนค่าหน้าจอจริงกลับสู่สภาพเดิมให้ User ใช้งานต่อได้ปกติ
+            // ✅ คืนค่าหน้าจอจริง
             slipContainer.style.display = originalSlipDisplay;
             paper.className = originalClass;
 
-            // เตรียมข้อมูลส่ง (Payload)
             const p = {
                 action: isEditMode ? 'updateData' : 'saveData', 
                 includeContractUpdate: true,  
                 apiKey: SLIP_API_KEY,         
                 saleCode: document.getElementById('in-sale-code').value,
-                
                 book: document.getElementById('in-book').value, 
                 no: document.getElementById('in-no').value,
                 ref: document.getElementById('in-security-ref').value, 
-                
                 dateISO: document.getElementById('in-date').value, 
                 date: convertDateToThaiShort(document.getElementById('in-date').value),
-                
                 contractNo: document.getElementById('in-contract-no').value, 
                 shopName: document.getElementById('in-shop-name').value,
                 shopPhone: document.getElementById('in-shop-phone').value, 
@@ -670,16 +656,13 @@ function submitToDatabase() {
                 startDate: document.getElementById('in-start-date').value, 
                 receiver: document.getElementById('in-receiver').value,
                 payMethod: document.getElementById('in-pay-method').value, 
-                
-                receiptImage: fullBase64,       // ภาพเต็ม (สัดส่วน Desktop)
-                cleanReceiptImage: cleanBase64, // ภาพย่อ (สัดส่วน Desktop)
+                receiptImage: fullBase64,       
+                cleanReceiptImage: cleanBase64, 
                 slipImage: "", 
                 transRef: currentTransRef 
             };
     
-            // จัดการไฟล์สลิป (ต้นฉบับ)
             const f = document.getElementById('in-slip-file');
-            
             if(f.files.length > 0) {
                 try {
                     const mergedBase64 = await mergeImagesAndGetBase64(f.files);
@@ -692,9 +675,7 @@ function submitToDatabase() {
             } else {
                 if(isEditMode) {
                     const oldImg = document.getElementById('old-slip-img').getAttribute('src');
-                    if(oldImg && oldImg !== "") {
-                        p.slipImage = "KEEP"; 
-                    }
+                    if(oldImg && oldImg !== "") { p.slipImage = "KEEP"; }
                 }
                 sendData(p, btn, oldText); 
             }
