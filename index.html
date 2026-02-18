@@ -378,7 +378,7 @@
         // -------------------------------------------------------------
         // ⚙️ CONFIG & API SETUP
         // -------------------------------------------------------------
-        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbzJ1tRVYz_uyOaCx1lFeNhNw0MKzYjXQ93puF8PyS3MNSVR_NHWjCgifcW9BvEEcskhJg/exec"; 
+        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbw-CyPYltmiRAEq_g6LPkaJYydlEyNuDc9ronP0Fr5oqk4SPC8F-kBWzAhYCeLHLOdbTQ/exec"; 
         const SLIP_API_KEY = "cc337cb2-f35b-40b1-a92d-0ed556755722";
 
         var isEditMode = false; 
@@ -399,7 +399,7 @@
             
             fetch(`${googleScriptUrl}?action=findBill&book=${book}&no=${no}`, {
     method: 'GET',
-    redirect: 'follow' // ✅ เพิ่มเพื่อให้ตาม Redirect ของ Google
+    redirect: 'follow' 
 })
             .then(r=>r.json())
             .then(d => {
@@ -438,6 +438,9 @@
             document.getElementById('in-start-date').value = data.startDate ? data.startDate.split('T')[0] : "";
             document.getElementById('in-receiver').value = data.receiver || "";
             document.getElementById('in-pay-method').value = data.payMethod || "เงินสด";
+            
+            // ✅ แก้ไข: เก็บค่า TransRef เดิมไว้ (ป้องกันค่าหายเมื่อบันทึก)
+            currentTransRef = data.transRef || ""; 
 
             const oldSlipSection = document.getElementById('old-slip-section');
             const paperContainer = document.getElementById('slip-container-paper');
@@ -498,19 +501,15 @@
             const btn = document.querySelector('.btn-import'); const old = btn.innerText; btn.innerText="⏳.."; btn.disabled=true;
             fetch(`${googleScriptUrl}?action=getContractData&c_no=${encodeURIComponent(cNo)}`, {
     method: 'GET',
-    redirect: 'follow' // ✅ เพิ่มเพื่อให้ตาม Redirect ของ Google
+    redirect: 'follow' 
 }).then(r=>r.json()).then(d=>{
                 if(d.status==='success') {
                     document.getElementById('in-contract-no').value = d.c_no;
 					if (d.c_no) {
-    // แยกตัวอักษรหน้าขีด (เช่น "K-66/001" จะได้ "K")
     let prefix = d.c_no.split('-')[0].trim().toUpperCase();
     let saleSelect = document.getElementById('in-sale-code');
-    
-    // ถ้าตัวอักษรตรงกับที่มีในตัวเลือก ให้เปลี่ยนค่าทันที
     if (prefix === 'T' || prefix === 'K' || prefix === 'N') {
         saleSelect.value = prefix;
-        // โหลดเลขที่ใบเสร็จล่าสุดของทีมนั้นใหม่ด้วย
         fetchNextBillNo(); 
     }
 }
@@ -545,7 +544,7 @@
         function fetchNextBillNo() {
     if(isEditMode) return;
     const book = document.getElementById('in-book').value;
-    const saleCode = document.getElementById('in-sale-code').value; // รับค่า Sale Code
+    const saleCode = document.getElementById('in-sale-code').value; 
 
     if(!book) return;
 
@@ -554,12 +553,10 @@
     .then(d=>{ 
         if(d.status==='success'){ 
             document.getElementById('in-no').value = d.nextNo; 
-            // ID เต็มๆ จะเป็น Book-SaleCode-No เดี๋ยวไปรวมตอน Save
         }
     });
 }
         
-        // 🟢 ฟังก์ชันบันทึกและอัปเดต (แก้ไข: ลบ windowHeight เพื่อแก้ภาพยาวเกิน)
 function submitToDatabase() {
     if(!googleScriptUrl) return alert("URL Error");
 
@@ -572,11 +569,9 @@ function submitToDatabase() {
     const slipContainer = document.getElementById('slip-container-paper');
     const hasSlips = document.getElementById('slip-gallery').children.length > 0;
     
-    // เก็บสถานะการแสดงผลเดิมไว้
     const originalSlipDisplay = slipContainer.style.display;
     const originalClass = paper.className;
 
-    // ในไฟล์ bill.html
     const desktopConfig = {
         scale: 2,           
         useCORS: true,      
@@ -587,7 +582,6 @@ function submitToDatabase() {
             const clonedHtml = clonedDoc.documentElement;
             const clonedBody = clonedDoc.body;
 
-            // ✅ บังคับให้ Container ยืดหดตามเนื้อหา
             clonedHtml.style.height = 'auto';
             clonedBody.style.height = 'auto';
             
@@ -600,46 +594,43 @@ function submitToDatabase() {
             const clonedPaper = clonedDoc.getElementById('bill-paper');
             if (clonedPaper) {
                 clonedPaper.style.width = '210mm';      
-                
-                // 🔴 จุดที่แก้ไข: เปลี่ยนจาก 297mm เป็น auto
                 clonedPaper.style.minHeight = 'auto';  
-                
-                clonedPaper.style.height = 'max-content'; // ให้สูงเท่าเนื้อหาจริง
-                clonedPaper.style.boxShadow = 'none';     // ลบเงากระดาษออก
+                clonedPaper.style.height = 'max-content'; 
+                clonedPaper.style.boxShadow = 'none';     
                 clonedPaper.style.margin = '0 auto';
             }
         }
     };
 
-    // ---------------------------------------------------------
-    // 📸 STEP 1: จับภาพแบบ "ย่อ" (Clean Bill)
-    // ---------------------------------------------------------
     slipContainer.style.display = 'none';
     paper.classList.add('compact-mode');
 
     html2canvas(paper, desktopConfig).then(async cleanCanvas => {
         const cleanBase64 = cleanCanvas.toDataURL("image/jpeg", 0.8).split(',')[1];
 
-        // ---------------------------------------------------------
-        // 📸 STEP 2: จับภาพแบบ "เต็ม" (Full Bill)
-        // ---------------------------------------------------------
         paper.classList.remove('compact-mode');
         if(hasSlips) { slipContainer.style.display = 'flex'; }
 
         html2canvas(paper, desktopConfig).then(async fullCanvas => {
             const fullBase64 = fullCanvas.toDataURL("image/jpeg", 0.8).split(',')[1];
 
-            // ✅ คืนค่าหน้าจอจริง
             slipContainer.style.display = originalSlipDisplay;
             paper.className = originalClass;
+            
+            // ✅ แก้ไข: ตัด Sale Code ออกจากเลขที่บิลก่อนส่ง (ป้องกัน 6902-T-T-0001)
+            let rawNo = document.getElementById('in-no').value.trim();
+            let saleCode = document.getElementById('in-sale-code').value;
+            if (saleCode && rawNo.toUpperCase().startsWith(saleCode + "-")) {
+                rawNo = rawNo.substring(saleCode.length + 1);
+            }
 
             const p = {
                 action: isEditMode ? 'updateData' : 'saveData', 
                 includeContractUpdate: true,  
                 apiKey: SLIP_API_KEY,         
-                saleCode: document.getElementById('in-sale-code').value,
+                saleCode: saleCode,
                 book: document.getElementById('in-book').value, 
-                no: document.getElementById('in-no').value,
+                no: rawNo, // ส่งค่าเลขที่ที่ถูก Clean แล้ว
                 ref: document.getElementById('in-security-ref').value, 
                 dateISO: document.getElementById('in-date').value, 
                 date: convertDateToThaiShort(document.getElementById('in-date').value),
@@ -688,20 +679,17 @@ function submitToDatabase() {
         method: 'POST',
         body: JSON.stringify(p)
     })
-    .then(r => r.json()) // เพิ่มบรรทัดนี้เพื่ออ่านค่า JSON
+    .then(r => r.json()) 
     .then(() => { 
         alert(isEditMode ? '✅ แก้ไขข้อมูลเรียบร้อย!' : '✅ บันทึกใบเสร็จสำเร็จ!'); 
         
-        // 🚀 --- ส่วนที่เพิ่มใหม่: สั่งอัปเดตไฟล์สัญญาอัตโนมัติ ---
-        const contractUrl = "https://kamkywork.github.io/sale_contract/"; // ⚠️ เปลี่ยนเป็นลิงก์หน้าสัญญา (C.html) ของคุณ
-        const c_no = document.getElementById('in-contract-no').value; // ดึงเลขที่สัญญาจากช่องกรอก
+        const contractUrl = "https://kamkywork.github.io/sale_contract/"; 
+        const c_no = document.getElementById('in-contract-no').value; 
 
         if (c_no) {
-            // ✅ ปรับขนาดให้กว้างอย่างน้อย 1000px เพื่อให้ Browser ยอมวาดหน้าจอ
-window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`, 
+            window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`, 
             'AutoUpdater', 'width=1200,height=800,left=0,top=0');
         }
-        // ----------------------------------------------------
 
         if(isEditMode) resetToNewMode(); 
         else { 
@@ -732,8 +720,8 @@ window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`,
             html2canvas(paper, {
     scale: 2, 
     backgroundColor: "#ffffff",
-    useCORS: true,       // เพิ่ม useCORS เพื่อความชัวร์เรื่องรูป
-    windowWidth: 1440,   // บังคับความกว้าง Desktop
+    useCORS: true,       
+    windowWidth: 1440,   
     onclone: (clonedDoc) => {
         const clonedPaper = clonedDoc.getElementById('bill-paper');
         if(clonedPaper) {
@@ -751,7 +739,6 @@ window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`,
             });
         }
         
-        // ตัวแปรสำหรับรวมยอดเงินจากหลายสลิป
         var totalSlipAmount = 0;
 
         function previewSlip(input) {
@@ -760,12 +747,11 @@ window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`,
             const paperContainer = document.getElementById('slip-container-paper');
             const oldSlipSection = document.getElementById('old-slip-section');
 
-            // 🟢 รีเซ็ตค่าทุกครั้งที่เลือกไฟล์ใหม่
             previewContainer.innerHTML = '';
             paperGallery.innerHTML = '';
             currentTransRef = ""; 
-            totalSlipAmount = 0; // รีเซ็ตยอดรวม
-            document.getElementById('in-amount').value = ""; // ล้างช่องจำนวนเงินรอไว้
+            totalSlipAmount = 0; 
+            document.getElementById('in-amount').value = ""; 
             sync('amount');
 
             if (input.files && input.files.length > 0) {
@@ -814,14 +800,10 @@ window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`,
             }
         }
         
-        // -------------------------------------------------------------
-        // ✅ FIXED: ดึงยอดจากสลิป (Auto Fill) + ตรวจเทียบงวดละ
-        // -------------------------------------------------------------
         function analyzeSlip(base64Url, index) {
             const statusEl = document.getElementById(`slip-status-${index}`);
             let verifyName = document.getElementById('in-verify-name').value;
             
-            // 🟢 ดึงค่างวด (งวดละ) มาเป็นตัวอ้างอิง (Reference)
             let remAmountRaw = document.getElementById('in-rem-amount').value;
             let expectedAmount = remAmountRaw ? parseFloat(remAmountRaw.replace(/,/g, '')) : 0;
             
@@ -848,26 +830,22 @@ window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`,
                     body: JSON.stringify({
                         action: 'checkSlip',
                         image: resizedBase64,
-                        expectedAmount: expectedAmount, // 🟢 ส่งค่างวดไปให้ backend ตรวจเทียบ
+                        expectedAmount: expectedAmount, 
                         verifyName: verifyName,
                         apiKey: SLIP_API_KEY 
                     })
                 })
                 .then(response => response.json())
                 .then(d => {
-                    // กรณีผ่าน หรือ กรณีผ่านแต่ยอดไม่ตรงงวด (อนุโลมให้รวมยอดได้ แต่ขึ้นเตือน)
                     if (d.status === 'valid' || d.status === 'amount-mismatch') {
                         
-                        // 🟢 รวมยอดเงิน (Accumulate Amount)
                         if (d.actualAmount) {
                             totalSlipAmount += parseFloat(d.actualAmount);
                             
-                            // อัปเดตช่องจำนวนเงินอัตโนมัติ
                             let amountInput = document.getElementById('in-amount');
                             amountInput.value = totalSlipAmount;
-                            formatMoney(amountInput); // จัดฟอร์แมตลูกน้ำ
+                            formatMoney(amountInput); 
                             
-                            // อัปเดตวันที่ (ใช้วันที่ของสลิปล่าสุด)
                             if (d.transDate) {
                                 const slipDate = new Date(d.transDate);
                                 const dateStr = `${slipDate.getFullYear()}-${String(slipDate.getMonth() + 1).padStart(2, '0')}-${String(slipDate.getDate()).padStart(2, '0')}`;
@@ -877,7 +855,7 @@ window.open(`${contractUrl}?auto_update=true&c_no=${encodeURIComponent(c_no)}`,
                         }
 
                         if (d.status === 'amount-mismatch') {
-                            statusEl.className = 'slip-status status-fail'; // สีส้ม/แดงเตือน
+                            statusEl.className = 'slip-status status-fail'; 
                             statusEl.innerHTML = `⚠️ ยอด ${d.actualAmount.toLocaleString()} ไม่ตรงงวด (${expectedAmount.toLocaleString()})`;
                         } else {
                             statusEl.className = 'slip-status status-pass';
