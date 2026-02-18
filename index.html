@@ -439,8 +439,12 @@
             document.getElementById('in-receiver').value = data.receiver || "";
             document.getElementById('in-pay-method').value = data.payMethod || "เงินสด";
             
-            // ✅ แก้ไข: เก็บค่า TransRef เดิมไว้ (ป้องกันค่าหายเมื่อบันทึก)
+            // ✅ แก้ไข 1: เก็บค่า TransRef เดิมไว้ (ป้องกันค่าหายเมื่อบันทึก)
             currentTransRef = data.transRef || ""; 
+
+            // ✅ แก้ไข 2: รับค่าจำนวนงวดทั้งหมด (Total Period) มาแสดงและคำนวณ
+            document.getElementById('in-total-period').value = data.totalPeriod || "";
+            calculateRemaining(); // สั่งคำนวณยอดคงเหลือใหม่
 
             const oldSlipSection = document.getElementById('old-slip-section');
             const paperContainer = document.getElementById('slip-container-paper');
@@ -617,7 +621,7 @@ function submitToDatabase() {
             slipContainer.style.display = originalSlipDisplay;
             paper.className = originalClass;
             
-            // ✅ แก้ไข: ตัด Sale Code ออกจากเลขที่บิลก่อนส่ง (ป้องกัน 6902-T-T-0001)
+            // ✅ แก้ไข 3: ตัด Sale Code ออกจากเลขที่บิลก่อนส่ง (ป้องกัน 6902-T-T-0001)
             let rawNo = document.getElementById('in-no').value.trim();
             let saleCode = document.getElementById('in-sale-code').value;
             if (saleCode && rawNo.toUpperCase().startsWith(saleCode + "-")) {
