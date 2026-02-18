@@ -905,8 +905,31 @@ function submitToDatabase() {
                 });
             });
         }
-        function handleSignatureUpload(i) { if(i.files[0]) { const r=new FileReader(); r.onload=e=>{ document.getElementById('out-sig-img').src=e.target.result; document.getElementById('out-sig-img').style.display='block'; }; r.readAsDataURL(i.files[0]); } }
-        function removeSignature() { document.getElementById('out-sig-img').style.display='none'; document.getElementById('in-sig-file').value=''; }
+        
+        // --- 🟢 เพิ่มฟังก์ชันจำลายเซ็น (LocalStorage) ---
+        function handleSignatureUpload(i) {
+            if(i.files[0]) {
+                const r = new FileReader();
+                r.onload = e => {
+                    const imgData = e.target.result;
+                    document.getElementById('out-sig-img').src = imgData;
+                    document.getElementById('out-sig-img').style.display = 'block';
+                    // ✅ บันทึกลงเครื่อง
+                    localStorage.setItem('bill_signature_img', imgData);
+                };
+                r.readAsDataURL(i.files[0]);
+            }
+        }
+
+        function removeSignature() {
+            document.getElementById('out-sig-img').style.display = 'none';
+            document.getElementById('in-sig-file').value = '';
+            document.getElementById('out-sig-img').src = ''; // เคลียร์รูป
+            // ✅ ลบออกจากเครื่อง
+            localStorage.removeItem('bill_signature_img');
+        }
+        // ------------------------------------------------
+
         function sync(id) { document.getElementById('out-'+id).innerText=document.getElementById('in-'+id).value; }
         function formatDate(d) { if(!d)return; document.getElementById('out-date').innerText=new Date(d).toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}); }
         function formatStartDate(d) { if(!d)return; document.getElementById('out-start-date').innerText=new Date(d).toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}); }
@@ -950,6 +973,13 @@ function submitToDatabase() {
             // --- 🟢 ตั้งชื่อบัญชีสำหรับตรวจสลิปอัตโนมัติ (แก้ไขชื่อที่นี่) ---
             const myVerifyName = "ณัฐพล เคหาบาล,NATHAPON KEH"; 
             document.getElementById('in-verify-name').value = myVerifyName;
+            
+            // ✅ โหลดลายเซ็นจากความจำเครื่อง (ถ้ามี)
+            const savedSig = localStorage.getItem('bill_signature_img');
+            if(savedSig) {
+                document.getElementById('out-sig-img').src = savedSig;
+                document.getElementById('out-sig-img').style.display = 'block';
+            }
             // -------------------------------------------------------------
 
             const t=new Date().toISOString().split('T')[0]; document.getElementById('in-date').value=t; handleDateChange(t); generateSecurityCode(); setTimeout(fetchNextBillNo,1000);
