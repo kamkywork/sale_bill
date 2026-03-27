@@ -214,6 +214,11 @@
             <label>จำนวนเงิน (บาท) <span style="color:red; font-size:0.8em;">*ต้องกรอกก่อนแนบสลิป</span></label>
             <input type="text" id="in-amount" oninput="saveHistory(); formatMoney(this)">
         </div>
+		
+		<div class="form-group">
+    <label>ค่าปรับล่าช้า (บาท)</label>
+    <input type="text" id="in-fine-amount" oninput="saveHistory(); formatMoney(this)" placeholder="ถ้าไม่มีให้เว้นว่าง">
+</div>
 
         <div class="form-group" style="background: #e8f0fe; padding: 10px; border-radius: 5px; border: 1px solid #b3d7ff;">
             <label style="color: #004085;">📎 แนบรูปสลิป (ตรวจสอบยอดอัตโนมัติ)</label>
@@ -328,6 +333,11 @@
                 <span class="label">จำนวนเงิน</span>
                 <span class="fill-line" id="out-amount"></span>
             </div>
+			
+			<div class="row">
+    <span class="label">ค่าปรับล่าช้า</span>
+    <span class="fill-line" id="out-fine-amount">-</span>
+</div>
 
             <div style="margin-top: 15px; padding-top: 10px;">
                 <div class="row">
@@ -377,7 +387,7 @@
         // -------------------------------------------------------------
         // ⚙️ CONFIG & API SETUP
         // -------------------------------------------------------------
-        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbwPk1a0kmUkDWVVkJUZP7k7TwPDuXBRYKpvCD39O221o7wXfNvwLuRuJWfXPQu85yWe6Q/exec"; 
+        var googleScriptUrl = "https://script.google.com/macros/s/AKfycbyojR0tpi-Sw9Qcd4KJp_YcquH9aRjAJy1a2ol-xMcuLJCaxOttZ_qLkx_v-aM76Vk5GQ/exec"; 
         const SLIP_API_KEY = "cc337cb2-f35b-40b1-a92d-0ed556755722";
 
         var isEditMode = false; 
@@ -667,7 +677,8 @@
                         customer: document.getElementById('in-customer').value,
                         product: document.getElementById('in-product-name').value, 
                         period: document.getElementById('in-period').value || "-", 
-                        amount: document.getElementById('in-amount').value, 
+                        amount: document.getElementById('in-amount').value,
+						fineAmount: document.getElementById('in-fine-amount').value || 0, // เพิ่มบรรทัดนี้
                         remMonth: document.getElementById('in-rem-month').value,
                         remAmount: document.getElementById('in-rem-amount').value, 
                         dueDate: document.getElementById('in-due-date').value,
