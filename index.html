@@ -559,6 +559,33 @@
                     document.getElementById('in-type').value = 'installment';
                     document.getElementById('in-period').value = d.next_period;
                     document.getElementById('in-total-period').value = d.total_period;
+
+                    // --- เพิ่มระบบแจ้งเตือนเลื่อนนัด/เลยกำหนดเกิน 10 วัน ---
+                    if (d.first_date && d.due_day && d.next_period) {
+                        let firstDate = new Date(d.first_date);
+                        let targetDay = parseInt(d.due_day);
+                        let monthsToAdd = d.next_period - 1;
+                        
+                        let dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth() + monthsToAdd, 1);
+                        let lastDayOfMonth = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
+                        dueDate.setDate(Math.min(targetDay, lastDayOfMonth));
+                        dueDate.setHours(0, 0, 0, 0);
+                        
+                        let today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        let diffTime = today - dueDate;
+                        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        // หากเกิน 10 วัน ให้แจ้งเตือนและยัดยอด 200 ใส่ช่องค่าปรับ
+                        if (diffDays >= 10) {
+                            alert(`⚠️ แจ้งเตือน: สัญญานี้เลยกำหนดชำระ/เลื่อนนัดมาแล้ว ${diffDays} วัน!\n\nระบบได้ทำการเพิ่มยอด "ค่าปรับล่าช้า 200 บาท" ให้อัตโนมัติ กรุณาตรวจสอบก่อนบันทึกครับ`);
+                            document.getElementById('in-fine-amount').value = "200";
+                            formatMoney(document.getElementById('in-fine-amount')); // Format ให้มีคอมม่า
+                        }
+                    }
+                    // ----------------------------------------
+
                     sync('contract-no'); sync('customer'); sync('product-name'); sync('due-date'); sync('period');
                     formatMoney(document.getElementById('in-rem-amount')); formatMoney(document.getElementById('in-amount'));
                     formatStartDate(document.getElementById('in-start-date').value); toggleType(); calculateRemaining(); 
